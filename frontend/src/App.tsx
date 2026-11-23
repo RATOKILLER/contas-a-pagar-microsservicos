@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { FluxoCaixaChart } from './components/charts/FluxoCaixaChart';
 import { ContasView } from './components/contas/ContasView';
 import { DashboardView } from './components/DashboardView';
+import { GarantiasView } from './components/GarantiasView';
 import { PessoasView } from './components/PessoasView';
 import { PlanoContasView } from './components/PlanoContasView';
 import { RelatoriosView } from './components/RelatoriosView';
@@ -16,6 +17,7 @@ const ROTAS = {
   pessoas: '/pessoas',
   planos: '/plano-contas',
   relatorios: '/relatorios',
+  garantias: '/cheques-cartorio',
 } as const;
 
 type TabKey = keyof typeof ROTAS;
@@ -116,6 +118,10 @@ export const App: React.FC = () => {
             <span className="nav-icon">💰</span>
             <span>Contas a Receber</span>
           </NavLink>
+          <NavLink to={ROTAS.garantias} className={navClass}>
+            <span className="nav-icon">🧾</span>
+            <span>Cheques e Cartório</span>
+          </NavLink>
           <NavLink to={ROTAS.relatorios} className={navClass}>
             <span className="nav-icon">📈</span>
             <span>Relatórios</span>
@@ -149,6 +155,7 @@ export const App: React.FC = () => {
             <Route path={ROTAS.dashboard} element={<Dashboard />} />
             <Route path={ROTAS.pagar} element={<ContasView key="PAGAR" natureza="PAGAR" />} />
             <Route path={ROTAS.receber} element={<ContasView key="RECEBER" natureza="RECEBER" />} />
+            <Route path={ROTAS.garantias} element={<GarantiasView />} />
             <Route path={ROTAS.relatorios} element={<RelatoriosView />} />
             <Route path={ROTAS.pessoas} element={<PessoasView />} />
             <Route path={ROTAS.planos} element={<PlanoContasView />} />

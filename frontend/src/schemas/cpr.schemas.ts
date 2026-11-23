@@ -95,3 +95,41 @@ export const quitacaoSchema = z.object({
   acrescimo: dinheiroOpcional, // em branco = o serviço aplica o acréscimo se houver atraso
 });
 export type QuitacaoForm = z.infer<typeof quitacaoSchema>;
+
+// ---------- Cheque pré-datado (RN08) ----------
+
+export const chequeSchema = z
+  .object({
+    contaReceberId: z.coerce.number().int().positive('Selecione o título a receber.'),
+    numeroCheque: z.string().trim().min(1, 'Informe o número do cheque.').max(20),
+    banco: z.string().trim().regex(/^\d{3,4}$/, 'Código do banco com 3 ou 4 dígitos (ex.: 001).'),
+    agencia: z.string().trim().min(1, 'Informe a agência.').max(10),
+    contaCorrente: z.string().trim().min(1, 'Informe a conta corrente.').max(15),
+    emitente: textoOpcional(100),
+    valor: z.coerce.number({ invalid_type_error: 'Informe o valor.' }).positive('O valor deve ser maior que zero.'),
+    emissao: dataISO,
+    dataDeposito: dataISO,
+    observacao: textoOpcional(255),
+  })
+  .refine((c) => c.dataDeposito >= c.emissao, {
+    path: ['dataDeposito'],
+    message: 'O "bom para" não pode ser anterior à emissão.',
+  });
+export type ChequeForm = z.infer<typeof chequeSchema>;
+
+// ---------- Cartório e remessa (RN09) ----------
+
+export const cartorioSchema = z.object({
+  nome: z.string().trim().min(3, 'Informe o nome do cartório.').max(80),
+  contato: textoOpcional(50),
+  telefone: textoOpcional(20),
+  cidade: textoOpcional(50),
+});
+export type CartorioForm = z.infer<typeof cartorioSchema>;
+
+export const remessaSchema = z.object({
+  contaReceberId: z.coerce.number().int().positive('Selecione o título vencido.'),
+  cartorioId: z.coerce.number().int().positive('Selecione o cartório.'),
+  dataRemessa: dataISO,
+});
+export type RemessaForm = z.infer<typeof remessaSchema>;

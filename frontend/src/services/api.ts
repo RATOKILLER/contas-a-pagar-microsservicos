@@ -1,4 +1,13 @@
 import {
+  Cartorio,
+  CartorioRequest,
+  Cheque,
+  ChequeRequest,
+  MotivoBaixa,
+  Remessa,
+  RemessaRequest,
+  SituacaoCheque,
+  SituacaoRemessa,
   ContaPagar,
   ContaReceber,
   ContaRequest,
@@ -135,6 +144,32 @@ export const api = {
       body: json(payload),
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
+
+  // contas-receber-service: cheques pré-datados (RN08)
+  listarCheques: (situacao?: SituacaoCheque) => request<Cheque[]>('/api/contas-receber/cheques' + query({ situacao })),
+  registrarCheque: (c: ChequeRequest) => request<Cheque>('/api/contas-receber/cheques', { method: 'POST', body: json(c) }),
+  depositarCheque: (id: number, data: string) =>
+    request<Cheque>(`/api/contas-receber/cheques/${id}/deposito`, { method: 'POST', body: json({ data }) }),
+  devolverCheque: (id: number) =>
+    request<Cheque>(`/api/contas-receber/cheques/${id}/devolucao`, { method: 'POST', body: '{}' }),
+  cancelarCheque: (id: number) => request<void>(`/api/contas-receber/cheques/${id}`, { method: 'DELETE' }),
+
+  // contas-receber-service: cartórios e remessas para protesto (RN09)
+  listarCartorios: () => request<Cartorio[]>('/api/contas-receber/cartorios'),
+  salvarCartorio: (c: CartorioRequest, id?: number) =>
+    request<Cartorio>(`/api/contas-receber/cartorios${id ? `/${id}` : ''}`, {
+      method: id ? 'PUT' : 'POST',
+      body: json(c),
+    }),
+  excluirCartorio: (id: number) => request<void>(`/api/contas-receber/cartorios/${id}`, { method: 'DELETE' }),
+  listarRemessas: (situacao?: SituacaoRemessa) =>
+    request<Remessa[]>('/api/contas-receber/remessas' + query({ situacao })),
+  enviarRemessa: (r: RemessaRequest) =>
+    request<Remessa>('/api/contas-receber/remessas', { method: 'POST', body: json(r) }),
+  protestarRemessa: (id: number, data: string) =>
+    request<Remessa>(`/api/contas-receber/remessas/${id}/protesto`, { method: 'POST', body: json({ data }) }),
+  baixarRemessa: (id: number, data: string, motivo: MotivoBaixa) =>
+    request<Remessa>(`/api/contas-receber/remessas/${id}/baixa`, { method: 'POST', body: json({ data, motivo }) }),
 
   // relatorios-service
   fluxoCaixa: (inicio?: string, fim?: string) =>

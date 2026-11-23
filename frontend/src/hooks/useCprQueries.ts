@@ -2,6 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import {
+  CartorioRequest,
+  ChequeRequest,
+  MotivoBaixa,
+  RemessaRequest,
   ContaRequest,
   FiltroContas,
   Natureza,
@@ -22,6 +26,9 @@ export const cprKeys = {
   titulos: (natureza: Natureza, filtro?: FiltroContas) => [...cprKeys.all, 'titulos', natureza, filtro ?? {}] as const,
   fluxoCaixa: (inicio?: string, fim?: string) => [...cprKeys.all, 'relatorios', 'fluxo', inicio, fim] as const,
   inadimplencia: (natureza: Natureza) => [...cprKeys.all, 'relatorios', 'inadimplencia', natureza] as const,
+  cheques: () => [...cprKeys.all, 'cheques'] as const,
+  cartorios: () => [...cprKeys.all, 'cartorios'] as const,
+  remessas: () => [...cprKeys.all, 'remessas'] as const,
 };
 
 // ---------- Leituras ----------
@@ -89,4 +96,32 @@ export const useQuitarTitulo = (natureza: Natureza) =>
     ({ id, dados, chave }: { id: number; dados: QuitacaoRequest; chave: string }) =>
       api.quitarTitulo(natureza, id, dados, chave),
     natureza === 'PAGAR' ? 'Pagamento registrado.' : 'Recebimento registrado.'
+  );
+
+// ---------- Cheques pré-datados e cartório (RN08 / RN09) ----------
+
+export const useCheques = () => useQuery({ queryKey: cprKeys.cheques(), queryFn: () => api.listarCheques() });
+export const useCartorios = () => useQuery({ queryKey: cprKeys.cartorios(), queryFn: api.listarCartorios });
+export const useRemessas = () => useQuery({ queryKey: cprKeys.remessas(), queryFn: () => api.listarRemessas() });
+
+export const useRegistrarCheque = () => useCprMutation((c: ChequeRequest) => api.registrarCheque(c), 'Cheque registrado.');
+export const useDepositarCheque = () =>
+  useCprMutation(({ id, data }: { id: number; data: string }) => api.depositarCheque(id, data), 'Cheque depositado.');
+export const useDevolverCheque = () => useCprMutation((id: number) => api.devolverCheque(id), 'Devolução registrada.');
+export const useCancelarCheque = () => useCprMutation((id: number) => api.cancelarCheque(id), 'Cheque cancelado.');
+
+export const useSalvarCartorio = () =>
+  useCprMutation(
+    ({ id, dados }: { id?: number; dados: CartorioRequest }) => api.salvarCartorio(dados, id),
+    'Cartório salvo.'
+  );
+export const useExcluirCartorio = () => useCprMutation((id: number) => api.excluirCartorio(id), 'Cartório excluído.');
+export const useEnviarRemessa = () =>
+  useCprMutation((r: RemessaRequest) => api.enviarRemessa(r), 'Título enviado a protesto.');
+export const useProtestarRemessa = () =>
+  useCprMutation(({ id, data }: { id: number; data: string }) => api.protestarRemessa(id, data), 'Protesto registrado.');
+export const useBaixarRemessa = () =>
+  useCprMutation(
+    ({ id, data, motivo }: { id: number; data: string; motivo: MotivoBaixa }) => api.baixarRemessa(id, data, motivo),
+    'Baixa registrada.'
   );

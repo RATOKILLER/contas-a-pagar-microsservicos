@@ -2,10 +2,10 @@
 
 Dois grupos de testes:
 
-1. **Automatizados (62)**: rodam com `./mvnw verify` (Windows: `mvnw.cmd verify`). Os testes de integração sobem um PostgreSQL 16 real em container (Testcontainers), então é preciso ter o Docker rodando.
-2. **Manuais de sistema (9 cenários)**: feitos com o `docker compose` no ar, chamando a API pelo gateway com `curl`, inclusive derrubando serviços de propósito.
+1. **Automatizados (78)**: rodam com `./mvnw verify` (Windows: `mvnw.cmd verify`). Os testes de integração sobem um PostgreSQL 16 real em container (Testcontainers), então é preciso ter o Docker rodando.
+2. **Manuais de sistema (11 cenários)**: feitos com o `docker compose` no ar, chamando a API pelo gateway com `curl`, inclusive derrubando serviços de propósito.
 
-Resultado da última execução: **62 testes, 0 falhas, 0 erros** (BUILD SUCCESS em todos os 7 projetos).
+Resultado da última execução: **78 testes, 0 falhas, 0 erros** (BUILD SUCCESS em todos os 7 projetos).
 
 ```
 [INFO] Reactor Summary for CPR - Microsserviços (agregador) 1.0.0:
@@ -14,7 +14,7 @@ Resultado da última execução: **62 testes, 0 falhas, 0 erros** (BUILD SUCCESS
 [INFO] pessoas-service .................................... SUCCESS   (3 testes)
 [INFO] categorias-service ................................. SUCCESS   (4 testes)
 [INFO] contas-pagar-service ............................... SUCCESS   (25 testes)
-[INFO] contas-receber-service ............................. SUCCESS   (25 testes)
+[INFO] contas-receber-service ............................. SUCCESS   (41 testes)
 [INFO] relatorios-service ................................. SUCCESS   (4 testes)
 [INFO] BUILD SUCCESS
 ```
@@ -43,6 +43,27 @@ Resultado da última execução: **62 testes, 0 falhas, 0 erros** (BUILD SUCCESS
 | U14 | Quitação com data futura | Data = hoje + 1 | 422 "futura" | ✅ |
 | U15 | RN07 — cancelar | DELETE de título vencido | Situação CANCELADA; `delete` nunca chamado; evento CANCELADO | ✅ |
 | U16 | Título quitado não pode ser cancelado | Título PAGA | 422 | ✅ |
+
+### 1.1 Cheque pré-datado e cartório (RN08 e RN09)
+
+`GarantiaServiceTest` (JUnit 5 + Mockito; hoje fixo em 20/11/2026; título CR-7 de R$ 1.000,00).
+
+| # | Cenário | Dados de entrada | Resultado esperado | Obtido |
+|---|---|---|---|---|
+| G01 | Registrar cheque | Título em aberto; cheque de 400, bom para +15 dias, sem emitente | A_DEPOSITAR; emitente = cliente do título | ✅ |
+| G02 | Cheque para título já recebido | Título RECEBIDA | 422 "em aberto" | ✅ |
+| G03 | Cheques acima do valor do título | Já garantidos 700; novo de 400 | 422 "acima do valor do título" | ✅ |
+| G04 | Mesmo cheque duas vezes | Banco 001, ag. 1234, c/c 56789-0, nº 000123 já registrado | 422 "já foi registrado" | ✅ |
+| G05 | "Bom para" antes da emissão | Bom para = emissão − 1 dia | 422 | ✅ |
+| G06 | Depósito antes do "bom para" | Bom para 20/11; depósito em 19/11, depois em 20/11 | 422 "a partir de 20/11/2026"; depois DEPOSITADO | ✅ |
+| G07 | Transições do cheque | Devolver cheque a depositar; cancelar cheque depositado; devolver depositado | 422; 422; DEVOLVIDO | ✅ |
+| G08 | Enviar a protesto | Título VENCIDO; cartório ativo; sem remessa | ENVIADA | ✅ |
+| G09 | Título não vencido | Vencimento daqui a 5 dias | 422 "vencido e não recebido" | ✅ |
+| G10 | Cartório não cadastrado | Cartório 3 inexistente | 422 "Cadastre-o" | ✅ |
+| G11 | Segunda remessa do mesmo título | Já existe remessa em andamento | 422 "já está em cartório" | ✅ |
+| G12 | Ordem das datas | Protesto antes da remessa; protesto; baixa; baixa de novo | 422; PROTESTADA; BAIXADA; 422 "já foi baixada" | ✅ |
+| G13 | Baixa automática | Título recebido com remessa em andamento | BAIXADA, motivo PAGO | ✅ |
+| G14 | Cartório com remessa ativa | Excluir cartório | 422 | ✅ |
 
 ## 2. Testes dos controladores e endpoints
 
@@ -78,6 +99,8 @@ Resultado da última execução: **62 testes, 0 falhas, 0 erros** (BUILD SUCCESS
 | I10 | relatórios | Evento fora de ordem | QUITADO v1 chega antes de REGISTRADO v0 | REGISTRADO é descartado; recebido = 950 | ✅ |
 | I11 | relatórios | Fluxo de caixa | A receber 500 (jan), a pagar 200 (venc. jan, pago 210 em fev), cancelado 999 (jan) | Jan: previsto receber 500, previsto pagar 200 (cancelado fora), saldo 300; fev: pago 210 | ✅ |
 | I12 | relatórios | Período invertido | início 01/02, fim 01/01 | Erro "anterior" | ✅ |
+| I13 | contas-receber | RN09 de ponta a ponta | Título vencido há 10 dias e um em dia; cartório (nome repetido com outra caixa); remessas inválidas; remessa; 2ª remessa; protesto; cancelar título; excluir cartório; receber título | 201; 422; 422 (em dia); 422 (cartório 999); 201 ENVIADA; 422; PROTESTADA; 422; 422; recebimento 200 e remessa BAIXADA com motivo PAGO e título RECEBIDA | ✅ |
+| I14 | contas-receber | RN08 de ponta a ponta | Título de 1000; cheques de 600 (bom para hoje) e 400 (+30 dias); cheque de 0,01; cheque repetido; banco "1"; depósito antecipado; depósito; devolução; novo cheque de 600; cancelar o de 400 | 201, 201; 422 (passa de 1000); 422; 400; 422; DEPOSITADO; DEVOLVIDO; 201 (o devolvido deixou de garantir); 204 e listado como CANCELADO | ✅ |
 
 ## 4. Testes manuais de sistema (comunicação entre serviços e falhas)
 
@@ -94,6 +117,8 @@ Executados em 23/11/2026 com `docker compose up -d --build` (11 containers), cha
 | M07 | **Serviço indisponível** | `docker compose stop pessoas-service`; `GET /api/pessoas`; `POST /api/contas-pagar`; `GET /api/contas-pagar` | Gateway: 503 claro; lançamento: 503 sem gravar; listagem: 200 | `503 "O serviço de Pessoas está temporariamente indisponível. Os demais módulos continuam funcionando..."` · `503 "...não foi possível confirmar a pessoa do título."` · `200` com o nome da pessoa (réplica) ✅ |
 | M08 | **Mensageria indisponível** | `docker compose stop rabbitmq`; quitar CP-2; consultar outbox e relatório; `start rabbitmq`; aguardar | Quitação aceita; evento pendente no outbox; relatório desatualizado; após voltar: evento publicado e relatório atualizado | Quitação 200; outbox `titulo.quitado` pendente; relatório Nov pago 950 → após o broker voltar: 0 pendentes e pago **1300** ✅ |
 | M09 | Front-end ponta a ponta | Em http://localhost:3000: enviar formulário vazio; lançar CP (450, desconto 30 até 30/11); pagar pelo modal; abrir Relatórios | Erros do Zod no campo; só fornecedores e contas analíticas nos selects; prévia 420; relatório atualizado | Validações exibidas; título salvo com notificação; prévia "R$ 420,00"; Nov/26 pago 1720 (950 + 350 + 420) ✅ |
+| M10 | RN08 pela API e pela tela | Cheque de 900 para CR-2 (R$ 800); cheque de 500 bom para 20/12; depósito em 23/11; abrir Cheques e Cartório | 422 (acima do título); 201; 422 (pré-datado); botão "Depositar" desabilitado na tela | `"Os cheques do título somariam R$ 900, acima do valor do título (R$ 800.00)."` · 201 · `"Cheque pré-datado: só pode ser depositado a partir de 20/12/2026."` · botão desabilitado com dica ✅ |
+| M11 | RN09 pela tela e integração com o título | Cadastrar cartório; na tela, enviar CR-2 (vencido) a protesto (o select só lista vencidos); cancelar CR-2; excluir o cartório; receber CR-2; cheque para CR-2 | Remessa ENVIADA; 422; 422; recebimento 200 com remessa BAIXADA/PAGO; 422 | Notificação "Título enviado a protesto." · `"Não é possível cancelar o título CR-2: ele está em cartório..."` · `"O cartório ... tem remessas em andamento"` · `BAIXADA PAGO 2026-11-23 RECEBIDA` · `"Só é possível receber cheque para um título em aberto"` ✅ |
 
 ### Evidência (trechos das respostas)
 
