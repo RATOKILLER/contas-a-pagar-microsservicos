@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  POM agregador: serve apenas para compilar e testar todos os serviços com um comando
+  (./mvnw verify). Cada serviço continua sendo um projeto Spring Boot independente,
+  com o próprio pom.xml, o próprio Dockerfile e o próprio banco de dados.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>br.ifgoiano.cpr</groupId>
+    <artifactId>cpr-microsservicos</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>CPR - Microsserviços (agregador)</name>
+
+    <modules>
+        <module>discovery-server</module>
+        <module>api-gateway</module>
+        <module>pessoas-service</module>
+        <module>categorias-service</module>
+        <module>contas-pagar-service</module>
+        <module>contas-receber-service</module>
+        <module>relatorios-service</module>
+    </modules>
+</project>

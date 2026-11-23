@@ -1,0 +1,907 @@
+{
+  "info": {
+    "name": "CPR - Microsserviços (via API Gateway)",
+    "description": "Todas as rotas passam pelo gateway em {{base}}. Rode na ordem: cadastros → títulos → quitação → relatórios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Pessoas (pessoas-service)",
+      "item": [
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar só clientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas?tipo=CLIENTE",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "CLIENTE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar fornecedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"FORNECEDOR\",\n  \"nome\": \"Distribuidora Alfa Ltda\",\n  \"documento\": \"12.345.678/0001-99\",\n  \"uf\": \"GO\",\n  \"cep\": \"75900-000\",\n  \"email\": \"contato@alfa.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastrar cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CLIENTE\",\n  \"nome\": \"Mercado Beta\",\n  \"documento\": \"987.654.321-00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cadastro inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Jo\",\n  \"documento\": \"123\",\n  \"email\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Detalhar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Alterar (publica pessoa.atualizada)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas",
+                "1"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"FORNECEDOR\",\n  \"nome\": \"Distribuidora Alfa S.A.\",\n  \"documento\": \"12.345.678/0001-99\",\n  \"uf\": \"GO\",\n  \"cep\": \"75900-000\",\n  \"email\": \"contato@alfa.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Excluir (lógica)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/pessoas/2",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "pessoas",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Plano de contas (categorias-service)",
+      "item": [
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/plano-contas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "plano-contas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cadastrar subconta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/plano-contas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "plano-contas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"2.1.03\",\n  \"descricao\": \"Internet\",\n  \"superior\": {\n    \"id\": 5\n  },\n  \"consolidada\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Superior não consolidada (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/plano-contas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "plano-contas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"1.1.01\",\n  \"descricao\": \"Vendas à vista\",\n  \"superior\": {\n    \"id\": 3\n  },\n  \"consolidada\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Excluir conta com filhos (422)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/plano-contas/2",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "plano-contas",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Contas a pagar (contas-pagar-service)",
+      "item": [
+        {
+          "name": "Lançar título",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroTitulo\": \"CP-1\",\n  \"pessoa\": {\n    \"id\": 1\n  },\n  \"planoConta\": {\n    \"id\": 6\n  },\n  \"tipoTitulo\": \"DUPLICATA\",\n  \"valor\": 1000.0,\n  \"emissao\": \"2026-11-01\",\n  \"vencimento\": \"2026-12-10\",\n  \"desconto\": 50.0,\n  \"validadeDesc\": \"2026-11-30\",\n  \"acrescimo\": 20.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lançar para cliente (422 - RN04)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroTitulo\": \"CP-X\",\n  \"pessoa\": {\n    \"id\": 2\n  },\n  \"planoConta\": {\n    \"id\": 6\n  },\n  \"tipoTitulo\": \"DUPLICATA\",\n  \"valor\": 1000.0,\n  \"emissao\": \"2026-11-01\",\n  \"vencimento\": \"2026-12-10\",\n  \"desconto\": 50.0,\n  \"validadeDesc\": \"2026-11-30\",\n  \"acrescimo\": 20.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lançar em conta consolidada (422 - RN01)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroTitulo\": \"CP-Y\",\n  \"pessoa\": {\n    \"id\": 1\n  },\n  \"planoConta\": {\n    \"id\": 2\n  },\n  \"tipoTitulo\": \"DUPLICATA\",\n  \"valor\": 1000.0,\n  \"emissao\": \"2026-11-01\",\n  \"vencimento\": \"2026-12-10\",\n  \"desconto\": 50.0,\n  \"validadeDesc\": \"2026-11-30\",\n  \"acrescimo\": 20.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por período e situação",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar?inicio=2026-11-01&fim=2026-12-31&situacao=ABERTA",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "2026-11-01"
+                },
+                {
+                  "key": "fim",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "situacao",
+                  "value": "ABERTA"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pagar (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "exemplo-chave-001"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar/1/pagamento",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar",
+                "1",
+                "pagamento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Repetir pagamento com a mesma chave (Replay)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "exemplo-chave-001"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar/1/pagamento",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar",
+                "1",
+                "pagamento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pagar de novo com outra chave (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "exemplo-chave-002"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar/1/pagamento",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar",
+                "1",
+                "pagamento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancelar",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-pagar/2",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-pagar",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Contas a receber (contas-receber-service)",
+      "item": [
+        {
+          "name": "Lançar título",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroTitulo\": \"CR-1\",\n  \"pessoa\": {\n    \"id\": 2\n  },\n  \"planoConta\": {\n    \"id\": 3\n  },\n  \"tipoTitulo\": \"PIX\",\n  \"valor\": 2500.0,\n  \"emissao\": \"2026-11-01\",\n  \"vencimento\": \"2026-12-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Receber",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "exemplo-chave-101"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/1/recebimento",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "1",
+                "recebimento"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\",\n  \"desconto\": 0,\n  \"acrescimo\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Relatórios (relatorios-service)",
+      "item": [
+        {
+          "name": "Fluxo de caixa (padrão)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/relatorios/fluxo-caixa",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "relatorios",
+                "fluxo-caixa"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fluxo de caixa por período",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/relatorios/fluxo-caixa?inicio=2026-09-01&fim=2027-02-28",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "relatorios",
+                "fluxo-caixa"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "fim",
+                  "value": "2027-02-28"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Inadimplência de clientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/relatorios/inadimplencia?natureza=RECEBER",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "relatorios",
+                "inadimplencia"
+              ],
+              "query": [
+                {
+                  "key": "natureza",
+                  "value": "RECEBER"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Contas a pagar em atraso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/relatorios/inadimplencia?natureza=PAGAR",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "relatorios",
+                "inadimplencia"
+              ],
+              "query": [
+                {
+                  "key": "natureza",
+                  "value": "PAGAR"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Observabilidade",
+      "item": [
+        {
+          "name": "Estado dos circuit breakers do gateway",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/actuator/circuitbreakers",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "actuator",
+                "circuitbreakers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotas do gateway",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/actuator/gateway/routes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "actuator",
+                "gateway",
+                "routes"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

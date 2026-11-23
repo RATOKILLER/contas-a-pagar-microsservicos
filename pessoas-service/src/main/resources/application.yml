@@ -1,0 +1,49 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: pessoas-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:pessoas_db}
+    username: ${DB_USER:pessoas_user}
+    password: ${DB_PASS:pessoas_pass}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # o schema é do Flyway; o Hibernate só confere
+    open-in-view: false
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    username: ${RABBIT_USER:cpr}
+    password: ${RABBIT_PASS:cpr}
+    template:
+      observation-enabled: true   # propaga o traceId nas mensagens
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"
+
+cpr:
+  api:
+    descricao: Cadastro de clientes e fornecedores. Dono dos dados de pessoa; publica o evento pessoa.atualizada.

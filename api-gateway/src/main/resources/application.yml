@@ -1,0 +1,122 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      default-filters:
+        # Cada rota tem um circuit breaker próprio: se um serviço cai, só as rotas dele
+        # passam a responder 503 (fallback) e o resto do sistema segue funcionando.
+        - name: Retry
+          args:
+            retries: 2
+            methods: GET            # só repete leituras; escrita nunca é repetida pelo gateway
+            series: SERVER_ERROR
+            backoff:
+              firstBackoff: 100ms
+              maxBackoff: 500ms
+      routes:
+        - id: pessoas
+          uri: lb://pessoas-service
+          predicates: [ "Path=/api/pessoas/**,/api/pessoas" ]
+          filters:
+            - name: CircuitBreaker
+              args: { name: pessoas, fallbackUri: "forward:/fallback/pessoas" }
+        - id: categorias
+          uri: lb://categorias-service
+          predicates: [ "Path=/api/plano-contas/**,/api/plano-contas" ]
+          filters:
+            - name: CircuitBreaker
+              args: { name: categorias, fallbackUri: "forward:/fallback/categorias" }
+        - id: contas-pagar
+          uri: lb://contas-pagar-service
+          predicates: [ "Path=/api/contas-pagar/**,/api/contas-pagar" ]
+          filters:
+            - name: CircuitBreaker
+              args: { name: contas-pagar, fallbackUri: "forward:/fallback/contas-pagar" }
+        - id: contas-receber
+          uri: lb://contas-receber-service
+          predicates: [ "Path=/api/contas-receber/**,/api/contas-receber" ]
+          filters:
+            - name: CircuitBreaker
+              args: { name: contas-receber, fallbackUri: "forward:/fallback/contas-receber" }
+        - id: relatorios
+          uri: lb://relatorios-service
+          predicates: [ "Path=/api/relatorios/**" ]
+          filters:
+            - name: CircuitBreaker
+              args: { name: relatorios, fallbackUri: "forward:/fallback/relatorios" }
+
+        # Documentação OpenAPI de cada serviço, exposta pelo gateway para o Swagger UI único.
+        - id: docs-pessoas
+          uri: lb://pessoas-service
+          predicates: [ "Path=/docs/pessoas/**" ]
+          filters: [ "RewritePath=/docs/pessoas/(?<p>.*), /$\\{p}" ]
+        - id: docs-categorias
+          uri: lb://categorias-service
+          predicates: [ "Path=/docs/categorias/**" ]
+          filters: [ "RewritePath=/docs/categorias/(?<p>.*), /$\\{p}" ]
+        - id: docs-contas-pagar
+          uri: lb://contas-pagar-service
+          predicates: [ "Path=/docs/contas-pagar/**" ]
+          filters: [ "RewritePath=/docs/contas-pagar/(?<p>.*), /$\\{p}" ]
+        - id: docs-contas-receber
+          uri: lb://contas-receber-service
+          predicates: [ "Path=/docs/contas-receber/**" ]
+          filters: [ "RewritePath=/docs/contas-receber/(?<p>.*), /$\\{p}" ]
+        - id: docs-relatorios
+          uri: lb://relatorios-service
+          predicates: [ "Path=/docs/relatorios/**" ]
+          filters: [ "RewritePath=/docs/relatorios/(?<p>.*), /$\\{p}" ]
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - { name: "Pessoas", url: "/docs/pessoas/v3/api-docs" }
+      - { name: "Plano de Contas (categorias)", url: "/docs/categorias/v3/api-docs" }
+      - { name: "Contas a Pagar", url: "/docs/contas-pagar/v3/api-docs" }
+      - { name: "Contas a Receber", url: "/docs/contas-receber/v3/api-docs" }
+      - { name: "Relatórios", url: "/docs/relatorios/v3/api-docs" }
+
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,circuitbreakers
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"
