@@ -121,6 +121,76 @@ export interface FiltroContas {
   situacao?: SituacaoConta | '';
 }
 
+// ---------- contas-receber-service: cheque pré-datado e cartório (RN08 / RN09) ----------
+
+export type SituacaoCheque = 'A_DEPOSITAR' | 'DEPOSITADO' | 'DEVOLVIDO' | 'CANCELADO';
+export type SituacaoRemessa = 'ENVIADA' | 'PROTESTADA' | 'BAIXADA';
+export type MotivoBaixa = 'PAGO' | 'DESISTENCIA';
+
+export interface TituloGarantido {
+  id: number;
+  numeroTitulo: string;
+  cliente: string;
+  valor: number;
+  vencimento: string;
+  situacao: SituacaoConta;
+}
+
+export interface Cartorio {
+  id: number;
+  nome: string;
+  contato: string | null;
+  telefone: string | null;
+  cidade: string | null;
+}
+export type CartorioRequest = Omit<Cartorio, 'id'>;
+
+export interface Cheque {
+  id: number;
+  titulo: TituloGarantido | null;
+  numeroCheque: string;
+  banco: string;
+  agencia: string;
+  contaCorrente: string;
+  emitente: string;
+  valor: number;
+  emissao: string;
+  dataDeposito: string;
+  dataDepositado: string | null;
+  situacao: SituacaoCheque;
+  observacao: string | null;
+}
+
+export interface ChequeRequest {
+  contaReceberId: number;
+  numeroCheque: string;
+  banco: string;
+  agencia: string;
+  contaCorrente: string;
+  emitente?: string;
+  valor: number;
+  emissao: string;
+  dataDeposito: string;
+  observacao?: string;
+}
+
+export interface Remessa {
+  id: number;
+  titulo: TituloGarantido | null;
+  cartorio: Cartorio;
+  dataRemessa: string;
+  dataProtesto: string | null;
+  dataBaixa: string | null;
+  motivoBaixa: MotivoBaixa | null;
+  situacao: SituacaoRemessa;
+}
+
+export interface RemessaRequest {
+  contaReceberId: number;
+  cartorioId: number;
+  dataRemessa: string;
+}
+
 // ---------- relatorios-service ----------
 
 export interface MesFluxo {

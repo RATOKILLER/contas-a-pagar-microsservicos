@@ -73,8 +73,8 @@ Extraídas do capítulo 3 (*O Manual do Sistema*) e do capítulo 5 do livro. As 
 | RN05 | Desconto tem prazo de validade: dentro do prazo aplica-se o desconto; fora dele, o acréscimo. **Valor efetivo = valor − desconto + acréscimo.** | cap. 3, p. 60 | `ContaPagarService.quitar` / `ContaReceberService.quitar` |
 | RN06 | Tipo do título obrigatório: Duplicata, Nota Promissória, Outros **(G: + PIX e Cartão)**. | cap. 3, p. 60 | Enum `TipoTitulo` + validação |
 | RN07 | Quitação é registro, não exclusão: o título permanece para consulta. **(G)** "Excluir" um título em aberto = **cancelar** (situação CANCELADA). | cap. 3, p. 60 | `DELETE` cancela; título pago/cancelado não pode ser alterado |
-| RN08 | Cheque pré-datado. | cap. 3, p. 61 | Não implementado (seção 17) |
-| RN09 | Remessa para cartório. | cap. 3, p. 62 | Não implementado (seção 17) |
+| RN08 | Cheque pré-datado: recebimento com data futura de depósito ("bom para"), com banco, agência e conta corrente; funciona como **garantia** do título. **(G)** O cheque se liga ao título a receber (e, por ele, ao cliente). A soma dos cheques vigentes não passa do valor do título, o mesmo cheque não entra duas vezes, e o depósito antes do "bom para" é recusado. | cap. 3, p. 61 | `contas-receber-service` → `ChequeService` |
+| RN09 | Remessa para cartório: título **vencido e não recebido** pode ir a protesto; a remessa guarda as datas de envio, protesto e baixa; o **cartório precisa estar cadastrado antes**. **(G)** No máximo uma remessa em andamento por título. Título em cartório não pode ser alterado nem cancelado, e o recebimento do título dá **baixa automática** na remessa. | cap. 3, p. 62 · cap. 5, p. 73 | `contas-receber-service` → `CartorioService` |
 | RN10 | Toda exclusão pede confirmação. | cap. 3, p. 48 e 54 | Front-end: diálogo de confirmação |
 | RN11 **(G)** | Situação explícita: ABERTA, PAGA, RECEBIDA, VENCIDA, CANCELADA. Título em aberto com vencimento passado vira **VENCIDA** (agendador de hora em hora e ao lançar). | o livro deduzia pelas datas | `VencimentoAgendador` |
 | RN12 **(G)** | Vencimento ≥ emissão; desconto < valor; validade do desconto só com desconto; quitação não pode ter data futura nem anterior à emissão. | — | Bean Validation + serviço + Zod no front-end |
@@ -96,6 +96,8 @@ Extraídas do capítulo 3 (*O Manual do Sistema*) e do capítulo 5 do livro. As 
 | RF09 | Listar títulos em atraso (inadimplência de clientes e contas a pagar atrasadas). |
 | RF10 | Marcar automaticamente como vencidos os títulos em aberto com vencimento passado. |
 | RF11 | Exibir dashboard com totais a pagar, a receber, saldo e próximos vencimentos. |
+| RF12 | Registrar, depositar, cancelar e marcar como devolvido o cheque pré-datado recebido como garantia de um título a receber. |
+| RF13 | Manter cartórios e enviar títulos vencidos a protesto, registrando protesto e baixa (por pagamento ou desistência). |
 
 ## 5. Requisitos não funcionais
 
@@ -109,7 +111,7 @@ Extraídas do capítulo 3 (*O Manual do Sistema*) e do capítulo 5 do livro. As 
 | RNF06 | Rastreabilidade | Micrometer Tracing + Zipkin; `traceId` em todos os logs |
 | RNF07 | Execução com um comando | `docker compose up -d --build` |
 | RNF08 | Versionamento de schema | Flyway em cada serviço; `ddl-auto=validate` |
-| RNF09 | Testes automatizados | 62 testes (unitários, controller, integração com Testcontainers) |
+| RNF09 | Testes automatizados | 78 testes (unitários, controller, integração com Testcontainers) |
 | RNF10 | Usabilidade | Front-end React com validação no campo (React Hook Form + Zod), rotas por URL e notificações |
 
 ## 6. Principais funcionalidades
@@ -118,6 +120,10 @@ Extraídas do capítulo 3 (*O Manual do Sistema*) e do capítulo 5 do livro. As 
 - **Títulos:** lançamento com validação da pessoa e da categoria nos serviços donos desses dados. O título já nasce VENCIDO quando o vencimento passou.
 - **Quitação:** cálculo automático de desconto e acréscimo pela data (RN05), prévia do valor efetivo no front-end e idempotência contra cliques duplos ou reenvio da rede.
 - **Consultas:** filtros por período, situação e pessoa.
+- **Garantias e cobrança (contas a receber):**
+  - cheques pré-datados com controle do "bom para", depósito e devolução;
+  - cadastro de cartórios;
+  - remessa de títulos vencidos a protesto, com baixa automática quando o título é recebido.
 - **Relatórios:** fluxo de caixa mensal (previsto pelo vencimento, realizado pela quitação) e inadimplência com dias em atraso.
 - **Observabilidade:**
   - Eureka mostra os serviços no ar;
@@ -180,6 +186,30 @@ classDiagram
     Pessoa "1" <-- "*" Titulo : fornecedor/cliente
     PlanoConta "1" <-- "*" Titulo : categoria
     Titulo "1" --> "0..1" Quitacao : registro
+    class ChequePreDatado {
+        numeroCheque
+        banco, agencia, contaCorrente
+        emitente
+        valor
+        emissao
+        dataDeposito (bom para)
+        situacao
+    }
+    class Cartorio {
+        nome
+        contato
+        telefone
+    }
+    class RemessaCartorio {
+        dataRemessa
+        dataProtesto
+        dataBaixa
+        motivoBaixa
+        situacao
+    }
+    ContaReceber "1" <-- "*" ChequePreDatado : garantia
+    ContaReceber "1" <-- "*" RemessaCartorio : protesto
+    Cartorio "1" <-- "*" RemessaCartorio
 ```
 
 As **situações** do título e suas transições:
@@ -289,7 +319,7 @@ Seguimos a sugestão do enunciado (pessoas, categorias, contas a pagar, contas a
 | Pessoas | Cadastro de referência usado pelas duas naturezas de título; muda pouco e é lido muito. É o "Cliente.db/Fornecedor.db" do livro. | Ninguém |
 | Categorias | Estrutura contábil própria, com regra própria (RN01) e ciclo de vida independente dos títulos. | Ninguém |
 | Contas a pagar | Concentra o ciclo de vida do título a pagar (lançar → vencer → pagar/cancelar) e a regra de quitação. | Pessoas e Categorias (só para **validar** no lançamento) |
-| Contas a receber | Mesmo ciclo, mas outro processo de negócio, outros usuários (financeiro x cobrança) e evolução diferente: o livro prevê cheque pré-datado e cartório só para recebimentos. | Pessoas e Categorias |
+| Contas a receber | Mesmo ciclo, mas outro processo de negócio, outros usuários (financeiro x cobrança) e evolução diferente: cheque pré-datado e remessa para cartório (RN08 e RN09) só existem para recebimentos e moram só neste serviço. | Pessoas e Categorias |
 | Relatórios | Só lê, cruza pagar **e** receber e pode ficar segundos atrasado. Separá-lo evita que consultas pesadas disputem recursos com as gravações e que contas a pagar dependa de contas a receber. | Ninguém (recebe eventos) |
 
 Decisões e alternativas consideradas:
@@ -320,6 +350,12 @@ Todas as rotas passam pelo gateway em `http://localhost:8080`. A documentação 
 | contas-pagar | DELETE | `/api/contas-pagar/{id}` | **Cancela** (não apaga) | 204, 404, 422 |
 | contas-pagar | POST | `/api/contas-pagar/{id}/pagamento` | Pagamento; header `Idempotency-Key` | 200 (`Idempotent-Replay`), 400, 404, 409, 422 |
 | contas-receber | — | `/api/contas-receber/**` | Espelho; quitação em `/{id}/recebimento` | idem |
+| contas-receber | GET / POST | `/api/contas-receber/cheques[?situacao=]` | Lista / registra cheque pré-datado (RN08) | 200 / 201, 400, 404, 422 |
+| contas-receber | POST | `/api/contas-receber/cheques/{id}/deposito` · `/devolucao` | Deposita (só a partir do "bom para") / registra devolução | 200, 404, 422 |
+| contas-receber | DELETE | `/api/contas-receber/cheques/{id}` | Cancela cheque ainda não depositado | 204, 422 |
+| contas-receber | GET / POST / PUT / DELETE | `/api/contas-receber/cartorios[/{id}]` | Cartórios (exclusão recusada com remessa em andamento) | 200/201/204, 400, 422 |
+| contas-receber | GET / POST | `/api/contas-receber/remessas[?situacao=]` | Lista / envia título vencido a protesto (RN09) | 200 / 201, 400, 404, 422 |
+| contas-receber | POST | `/api/contas-receber/remessas/{id}/protesto` · `/baixa` | Registra protesto / baixa (`PAGO` ou `DESISTENCIA`) | 200, 404, 422 |
 | relatórios | GET | `/api/relatorios/fluxo-caixa?inicio=&fim=` | Previsto x realizado por mês | 200, 422 |
 | relatórios | GET | `/api/relatorios/inadimplencia?natureza=RECEBER\|PAGAR` | Títulos em atraso com dias de atraso | 200, 422 |
 
@@ -368,6 +404,7 @@ Formato único de erro (todos os serviços e o gateway):
 - **Exclusão lógica** de pessoa e categoria: o título antigo continua apontando para um id válido no histórico.
 - **Outbox:** o evento do título é gravado na tabela `outbox_evento` **na mesma transação** do título e publicado depois. Não existe título gravado sem evento, nem evento de algo que foi desfeito.
 - **Modelo de leitura no relatório:** a tabela `titulo_resumo` (chave natureza + id) é montada só por eventos, com `versao` para descartar evento antigo e `evento_processado` para descartar repetido.
+- **Cheques e cartório** ficam no `contas_receber_db` (migration `V2__cria_cheque_cartorio.sql`), com chaves estrangeiras reais para `conta_receber`, porque estão no mesmo banco. Um índice único parcial garante no banco que há no máximo uma remessa em andamento por título, e uma constraint `UNIQUE` impede o mesmo cheque duas vezes.
 - **Concorrência:** trava otimista (`@Version`) no título, de modo que duas quitações simultâneas não passam.
 
 DER de cada versão: ver os arquivos de diagramas.
@@ -468,12 +505,12 @@ Resumo — detalhes, dados de entrada e evidências em [TESTES.md](TESTES.md):
 
 | Tipo | Ferramenta | Quantidade |
 |---|---|---|
-| Regras de negócio (unitários) | JUnit 5 + Mockito | 32 (16 por serviço de contas) |
+| Regras de negócio (unitários) | JUnit 5 + Mockito | 46 (16 por serviço de contas + 14 de cheque e cartório) |
 | Controladores e endpoints | `@WebMvcTest` + MockMvc | 16 (8 por serviço de contas) |
-| Integração com banco real | `@SpringBootTest` + Testcontainers (PostgreSQL 16) | 13 |
+| Integração com banco real | `@SpringBootTest` + Testcontainers (PostgreSQL 16) | 15 |
 | Gateway (fallback) | JUnit 5 | 1 |
-| **Total automatizado** | `./mvnw verify` | **62, todos passando** |
-| Comunicação entre serviços, indisponibilidade e broker fora do ar | Manual, com o `docker compose` rodando | 9 cenários |
+| **Total automatizado** | `./mvnw verify` | **78, todos passando** |
+| Comunicação entre serviços, indisponibilidade, broker fora do ar e telas | Manual, com o `docker compose` rodando | 11 cenários |
 
 ## 17. Dificuldades encontradas
 
@@ -486,7 +523,7 @@ Resumo — detalhes, dados de entrada e evidências em [TESTES.md](TESTES.md):
   - o Docker Desktop 29 exige a API 1.40 ou mais nova, e o Testcontainers que vinha com o Spring Boot 3.3.4 era incompatível, por isso atualizamos para 1.21.4;
   - no Windows, o WSL2 precisou ser instalado com permissão de administrador;
   - o horário dos containers vinha em UTC, corrigido com `TZ=America/Sao_Paulo`.
-- **Escopo não implementado:** RN02 (partida dobrada), RN08 (cheque pré-datado) e RN09 (cartório), além de autenticação e controle de acesso, ficaram fora por prazo. São candidatos naturais a novos serviços (`lancamentos-service`, `cobranca-service`).
+- **Escopo não implementado:** RN02 (partida dobrada), além de autenticação e controle de acesso, ficou fora por prazo. É candidata natural a um novo serviço (`lancamentos-service`). RN08 (cheque pré-datado) e RN09 (cartório) entraram numa segunda rodada, dentro do `contas-receber-service`. Pensamos num `cobranca-service` separado, mas ele precisaria consultar e travar o título a cada operação, ou seja, uma dependência síncrona forte para dados que só existem por causa do título. Por isso ficaram juntos.
 
 ## 18. Comparação entre as duas arquiteturas
 

@@ -26,7 +26,7 @@ flowchart LR
 | `pessoas-service` | 8081 | Clientes e fornecedores |
 | `categorias-service` | 8082 | Plano de contas hierárquico (RN01) |
 | `contas-pagar-service` | 8083 | Títulos a pagar e pagamento (idempotente) |
-| `contas-receber-service` | 8084 | Títulos a receber e recebimento (idempotente) |
+| `contas-receber-service` | 8084 | Títulos a receber e recebimento (idempotente), cheques pré-datados e remessa para cartório |
 | `relatorios-service` | 8085 | Fluxo de caixa e inadimplência, alimentados por eventos |
 | `frontend` | 3000 | React + Nginx |
 
@@ -62,8 +62,9 @@ Para parar: `docker compose down`. Para apagar também os dados: `docker compose
 2. Em **Contas a Pagar**, lance um título com desconto e validade e registre o pagamento. A prévia mostra o valor efetivo (RN05).
 3. Abra **Relatórios**: o pagamento aparece em segundos, levado por um evento.
 4. Rode `docker compose stop pessoas-service` e tente lançar um título: ele é recusado com 503 e a listagem continua funcionando. Rode `docker compose start pessoas-service` para voltar.
-5. Rode `docker compose stop rabbitmq`, pague um título, depois `docker compose start rabbitmq`: o relatório se atualiza sozinho, porque o evento estava guardado no outbox.
-6. No **Zipkin**, procure `contas-pagar-service`: o mesmo traceId passa pelo gateway, por contas e por pessoas.
+5. Em **Cheques e Cartório**, registre um cheque pré-datado para um título a receber (o depósito fica bloqueado até o "bom para"). Depois cadastre um cartório e envie um título vencido a protesto. Ao receber esse título, a remessa recebe baixa automática.
+6. Rode `docker compose stop rabbitmq`, pague um título, depois `docker compose start rabbitmq`: o relatório se atualiza sozinho, porque o evento estava guardado no outbox.
+7. No **Zipkin**, procure `contas-pagar-service`: o mesmo traceId passa pelo gateway, por contas e por pessoas.
 
 ## Testes
 
@@ -71,7 +72,7 @@ Para parar: `docker compose down`. Para apagar também os dados: `docker compose
 ./mvnw verify          # Windows: mvnw.cmd verify   (requer JDK 21 e Docker para o Testcontainers)
 ```
 
-São 62 testes automatizados: regras de negócio, controllers, integração com PostgreSQL real, idempotência e duplicidade de eventos. Há também 9 cenários manuais de falha (serviço fora do ar, broker fora do ar). Cenários, dados e evidências: **[docs/TESTES.md](docs/TESTES.md)**. A coleção do Postman está em [`docs/api/CPR.postman_collection.json`](docs/api/CPR.postman_collection.json).
+São 78 testes automatizados: regras de negócio, controllers, integração com PostgreSQL real, idempotência e duplicidade de eventos. Há também 9 cenários manuais de falha (serviço fora do ar, broker fora do ar). Cenários, dados e evidências: **[docs/TESTES.md](docs/TESTES.md)**. A coleção do Postman está em [`docs/api/CPR.postman_collection.json`](docs/api/CPR.postman_collection.json).
 
 ## Estrutura do repositório
 

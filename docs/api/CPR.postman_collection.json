@@ -735,6 +735,342 @@
       ]
     },
     {
+      "name": "4b. Cheques pré-datados e cartório (RN08 / RN09)",
+      "item": [
+        {
+          "name": "Cadastrar cartório",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cartorios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cartorios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"1º Tabelionato de Protesto\",\n  \"cidade\": \"Morrinhos\",\n  \"telefone\": \"(64) 3413-0000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar cartórios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cartorios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cartorios"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar cheque pré-datado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cheques",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cheques"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contaReceberId\": 1,\n  \"numeroCheque\": \"850001\",\n  \"banco\": \"237\",\n  \"agencia\": \"0420\",\n  \"contaCorrente\": \"11223-4\",\n  \"valor\": 500.0,\n  \"emissao\": \"2026-11-23\",\n  \"dataDeposito\": \"2026-12-20\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar cheques a depositar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cheques?situacao=A_DEPOSITAR",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cheques"
+              ],
+              "query": [
+                {
+                  "key": "situacao",
+                  "value": "A_DEPOSITAR"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Depositar cheque (422 antes do bom para)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cheques/1/deposito",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cheques",
+                "1",
+                "deposito"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Registrar devolução do cheque",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cheques/1/devolucao",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cheques",
+                "1",
+                "devolucao"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancelar cheque não depositado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/cheques/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "cheques",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Enviar título vencido a protesto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/remessas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "remessas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contaReceberId\": 2,\n  \"cartorioId\": 1,\n  \"dataRemessa\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar remessas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/remessas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "remessas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar protesto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/remessas/1/protesto",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "remessas",
+                "1",
+                "protesto"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Baixa por desistência",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/contas-receber/remessas/1/baixa",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "contas-receber",
+                "remessas",
+                "1",
+                "baixa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2026-11-23\",\n  \"motivo\": \"DESISTENCIA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "5. Relatórios (relatorios-service)",
       "item": [
         {

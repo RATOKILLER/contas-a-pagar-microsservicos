@@ -120,7 +120,51 @@ classDiagram
     RelatorioService --> TituloResumo
 ```
 
-O `contas-receber-service` tem exatamente a mesma estrutura (`ContaReceber`, `dataRecebimento`, `valorRecebido`, rota `/recebimento`).
+O `contas-receber-service` tem exatamente a mesma estrutura (`ContaReceber`, `dataRecebimento`, `valorRecebido`, rota `/recebimento`) e mais o pacote `garantia` (RN08 e RN09):
+
+```mermaid
+classDiagram
+    direction LR
+    class ChequePreDatado {
+        Long contaReceberId
+        String numeroCheque, banco, agencia, contaCorrente
+        String emitente
+        BigDecimal valor
+        LocalDate emissao, dataDeposito, dataDepositado
+        SituacaoCheque situacao
+    }
+    class Cartorio {
+        String nome, contato, telefone, cidade
+        boolean ativo
+    }
+    class RemessaCartorio {
+        Long contaReceberId
+        LocalDate dataRemessa, dataProtesto, dataBaixa
+        MotivoBaixa motivoBaixa
+        SituacaoRemessa situacao
+    }
+    class ChequeService {
+        registrar(req)
+        depositar(id, data)
+        devolver(id)
+        cancelar(id)
+    }
+    class CartorioService {
+        cadastrarCartorio() alterarCartorio() inativarCartorio()
+        enviar(req) protestar(id, data) baixar(id, data, motivo)
+        baixarPorRecebimento(contaId, data)
+        remessaEmAndamento(contaId)
+    }
+    class ContaReceberService {
+        quitar() chama baixarPorRecebimento
+        alterar() e cancelar() checam remessaEmAndamento
+    }
+    RemessaCartorio --> Cartorio
+    ChequeService --> ChequePreDatado
+    CartorioService --> RemessaCartorio
+    CartorioService --> Cartorio
+    ContaReceberService --> CartorioService
+```
 
 ## 2. Diagrama de componentes
 
@@ -183,7 +227,8 @@ flowchart TB
 |---|---|
 | `pessoas-service` | `api` · `service` · `domain` · `evento` · `shared` |
 | `categorias-service` | `api` · `service` · `domain` · `evento` · `shared` |
-| `contas-pagar-service` / `contas-receber-service` | `api` · `service` · `domain` · `integracao` · `evento` · `shared` |
+| `contas-pagar-service` | `api` · `service` · `domain` · `integracao` · `evento` · `shared` |
+| `contas-receber-service` | os mesmos + `garantia` (cheque pré-datado, cartório e remessa) |
 | `relatorios-service` | `api` · `domain` · `evento` · `shared` |
 | `api-gateway` | `gateway` (configuração de rotas em YAML + `FallbackController`) |
 | `discovery-server` | `discovery` |
@@ -211,13 +256,19 @@ flowchart LR
             UC4(["Lançar / alterar / cancelar título a receber"])
             UC6(["Registrar recebimento"])
             UC9b(["Marcar títulos vencidos"])
+            UC10(["Registrar / depositar cheque pré-datado"])
+            UC11(["Enviar título vencido a protesto"])
+            UC12(["Manter cartórios"])
         end
         subgraph relatorios["relatorios-service"]
             UC7(["Consultar fluxo de caixa"])
             UC8(["Consultar inadimplência"])
         end
     end
-    F --- UC1 & UC2 & UC3 & UC4 & UC5 & UC6
+    F --- UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC10 & UC11 & UC12
+    UC10 -. "«extend» garantia do título" .-> UC4
+    UC11 -. "«include» cartório cadastrado" .-> UC12
+    UC6 -. "«extend» baixa automática da remessa" .-> UC11
     G --- UC7 & UC8
     T --- UC9a & UC9b
     UC3 -. "«include» validar pessoa (REST)" .-> UC1
@@ -363,7 +414,55 @@ erDiagram
         INT tentativas
     }
 ```
-<sub>contas_pagar_db — o `contas_receber_db` é idêntico, com `conta_receber`, `data_recebimento` e `valor_recebido`.</sub>
+<sub>contas_pagar_db — o `contas_receber_db` tem as mesmas tabelas, com `conta_receber`, `data_recebimento` e `valor_recebido`, e mais as tabelas abaixo.</sub>
+
+```mermaid
+erDiagram
+    CONTA_RECEBER ||--o{ CHEQUE_PRE_DATADO : "conta_receber_id (FK)"
+    CONTA_RECEBER ||--o{ REMESSA_CARTORIO : "conta_receber_id (FK)"
+    CARTORIO ||--o{ REMESSA_CARTORIO : "cartorio_id (FK)"
+    CONTA_RECEBER {
+        BIGSERIAL id PK
+        VARCHAR numero_titulo UK
+        VARCHAR situacao
+        NUMERIC valor
+        DATE vencimento
+    }
+    CHEQUE_PRE_DATADO {
+        BIGSERIAL id PK
+        BIGINT conta_receber_id FK
+        VARCHAR numero_cheque "UK com banco, agencia e conta"
+        VARCHAR banco
+        VARCHAR agencia
+        VARCHAR conta_corrente
+        VARCHAR emitente
+        NUMERIC valor
+        DATE emissao
+        DATE data_deposito "bom para"
+        DATE data_depositado
+        VARCHAR situacao "A_DEPOSITAR, DEPOSITADO, DEVOLVIDO, CANCELADO"
+        VARCHAR observacao
+    }
+    CARTORIO {
+        BIGSERIAL id PK
+        VARCHAR nome UK
+        VARCHAR contato
+        VARCHAR telefone
+        VARCHAR cidade
+        BOOLEAN ativo
+    }
+    REMESSA_CARTORIO {
+        BIGSERIAL id PK
+        BIGINT conta_receber_id FK "1 em andamento por titulo"
+        BIGINT cartorio_id FK
+        DATE data_remessa
+        DATE data_protesto
+        DATE data_baixa
+        VARCHAR motivo_baixa "PAGO, DESISTENCIA"
+        VARCHAR situacao "ENVIADA, PROTESTADA, BAIXADA"
+    }
+```
+<sub>contas_receber_db — cheque pré-datado e cartório (RN08 e RN09; migration `V2__cria_cheque_cartorio.sql`).</sub>
 
 ```mermaid
 erDiagram

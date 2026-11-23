@@ -4,6 +4,7 @@ import br.ifgoiano.cpr.contasreceber.api.ContaReceberDtos.ContaRequest;
 import br.ifgoiano.cpr.contasreceber.api.ContaReceberDtos.QuitacaoRequest;
 import br.ifgoiano.cpr.contasreceber.domain.*;
 import br.ifgoiano.cpr.contasreceber.evento.Outbox;
+import br.ifgoiano.cpr.contasreceber.garantia.CartorioService;
 import br.ifgoiano.cpr.contasreceber.integracao.CategoriaClient;
 import br.ifgoiano.cpr.contasreceber.integracao.CategoriaClient.CategoriaDTO;
 import br.ifgoiano.cpr.contasreceber.integracao.PessoaClient;
@@ -36,15 +37,18 @@ public class ContaReceberService {
     private final CategoriaClient categorias;
     private final Outbox outbox;
     private final Clock relogio;
+    private final CartorioService cartorio;
 
     public ContaReceberService(ContaReceberRepository repository, QuitacaoIdempotenciaRepository idempotencia,
-                             PessoaClient pessoas, CategoriaClient categorias, Outbox outbox, Clock relogio) {
+                             PessoaClient pessoas, CategoriaClient categorias, Outbox outbox, Clock relogio,
+                             CartorioService cartorio) {
         this.repository = repository;
         this.idempotencia = idempotencia;
         this.pessoas = pessoas;
         this.categorias = categorias;
         this.outbox = outbox;
         this.relogio = relogio;
+        this.cartorio = cartorio;
     }
 
     @Transactional(readOnly = true)
@@ -79,6 +83,7 @@ public class ContaReceberService {
     public ContaReceber alterar(Long id, ContaRequest req) {
         ContaReceber conta = buscar(id);
         exigirEmAberto(conta, "alterar");
+        exigirForaDoCartorio(conta, "alterar");
         if (repository.existsByNumeroTituloAndIdNot(req.numeroTitulo().trim(), id)) {
             throw new NegocioException("Já existe outro título com o número " + req.numeroTitulo().trim() + ".");
         }
@@ -94,6 +99,7 @@ public class ContaReceberService {
     public ContaReceber cancelar(Long id) {
         ContaReceber conta = buscar(id);
         exigirEmAberto(conta, "cancelar");
+        exigirForaDoCartorio(conta, "cancelar");
         conta.setSituacao(SituacaoConta.CANCELADA);
         repository.saveAndFlush(conta);
         outbox.registrar("CANCELADO", conta);
@@ -162,6 +168,7 @@ public class ContaReceberService {
         if (chaveIdempotencia != null && !chaveIdempotencia.isBlank()) {
             idempotencia.save(new QuitacaoIdempotencia(chaveIdempotencia, id));
         }
+        cartorio.baixarPorRecebimento(id, data); // RN09: recebido em cartório → baixa automática da remessa
         outbox.registrar("QUITADO", conta);
         return new Resultado(conta, false);
     }
@@ -224,6 +231,14 @@ public class ContaReceberService {
         if (!conta.getSituacao().emAberto()) {
             throw new NegocioException("Não é possível " + acao + " um título " + conta.getSituacao().name().toLowerCase() + ".");
         }
+    }
+
+    /** RN09: título protestado só sai do cartório por baixa ou pelo recebimento. */
+    private void exigirForaDoCartorio(ContaReceber conta, String acao) {
+        cartorio.remessaEmAndamento(conta.getId()).ifPresent(r -> {
+            throw new NegocioException("Não é possível " + acao + " o título " + conta.getNumeroTitulo()
+                    + ": ele está em cartório (" + r.getCartorio().getNome() + "). Dê baixa na remessa antes.");
+        });
     }
 
     private LocalDate hoje() {

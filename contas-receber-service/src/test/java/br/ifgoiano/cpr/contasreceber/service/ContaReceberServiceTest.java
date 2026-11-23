@@ -43,13 +43,14 @@ class ContaReceberServiceTest {
     @Mock PessoaClient pessoas;
     @Mock CategoriaClient categorias;
     @Mock Outbox outbox;
+    @Mock br.ifgoiano.cpr.contasreceber.garantia.CartorioService cartorio;
 
     ContaReceberService service;
 
     @BeforeEach
     void setUp() {
         Clock relogio = Clock.fixed(HOJE.atStartOfDay(ZoneId.of("America/Sao_Paulo")).toInstant(), ZoneId.of("America/Sao_Paulo"));
-        service = new ContaReceberService(repository, idempotencia, pessoas, categorias, outbox, relogio);
+        service = new ContaReceberService(repository, idempotencia, pessoas, categorias, outbox, relogio, cartorio);
     }
 
     private ContaRequest request(BigDecimal valor, LocalDate emissao, LocalDate vencimento, BigDecimal desconto, LocalDate validade) {
